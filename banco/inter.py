@@ -1,8 +1,7 @@
 import re
 import pandas as pd
 from io import BytesIO
-from xml.etree.ElementTree import Element, SubElement, tostring
-from xml.dom import minidom
+from utils import create_xml, create_txt, process_transactions  # Importar a nova função
 
 def preprocess_text(text):
     """
@@ -75,65 +74,8 @@ def extract_transactions(transactions):
     """
     return transactions
 
-def create_xml(data):
-    """
-    Cria um arquivo XML a partir dos dados extraídos e retorna o DataFrame e o XML como BytesIO.
-    """
-    df = pd.DataFrame(data)
-    
-    root = Element("Transactions")
-    
-    for transaction in data:
-        trans_elem = SubElement(root, "Transaction")
-        
-        date_elem = SubElement(trans_elem, "Data")
-        date_elem.text = transaction["Data"]
-        
-        desc_elem = SubElement(trans_elem, "Descrição")
-        desc_elem.text = transaction["Descrição"]
-        
-        value_elem = SubElement(trans_elem, "Valor")
-        value_elem.text = transaction["Valor"]
-        
-        type_elem = SubElement(trans_elem, "Tipo")
-        type_elem.text = transaction["Tipo"]
-    
-    rough_string = tostring(root, 'utf-8')
-    reparsed = minidom.parseString(rough_string)
-    pretty_xml = reparsed.toprettyxml(indent="  ")
-    
-    output = BytesIO()
-    output.write(pretty_xml.encode('utf-8'))
-    output.seek(0)
-    
-    return df, output
-
-def create_txt(data):
-    """
-    Cria um arquivo TXT a partir dos dados extraídos e retorna o TXT como BytesIO.
-    """
-    txt_content = ""
-    for transaction in data:
-        txt_content += f"Data: {transaction['Data']}\n"
-        txt_content += f"Descrição: {transaction['Descrição']}\n"
-        txt_content += f"Valor: {transaction['Valor']}\n"
-        txt_content += f"Tipo: {transaction['Tipo']}\n"
-        txt_content += "-" * 50 + "\n"
-    
-    output = BytesIO()
-    output.write(txt_content.encode('utf-8'))
-    output.seek(0)
-    
-    return output
-
 def process(text):
     """
     Processa o texto extraído do extrato do Banco Inter e retorna o DataFrame, XML e TXT.
     """
-    transactions = preprocess_text(text)
-    data = extract_transactions(transactions)
-    if not data:
-        return None, None, None
-    df, xml_data = create_xml(data)
-    txt_data = create_txt(data)
-    return df, xml_data, txt_data
+    return process_transactions(text, preprocess_text, extract_transactions)

@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 import streamlit as st
 from pdf_reader import validate_pdf, read_pdf
 from banco import get_processor
@@ -17,24 +21,22 @@ def main():
                 text = read_pdf(uploaded_file)
                 
                 processor = get_processor(bank)
-                df, xml_data, txt_data = processor(text)
+                result = processor(text)
+                print(f"Bank: {bank}, Return type: {type(result)}, Return value: {result}")
+                xml_data, txt_data = result
                 
-                if df is None or xml_data is None or txt_data is None:
+                if xml_data is None or txt_data is None:
                     st.warning("Nenhuma transação encontrada. Verifique o formato do arquivo.")
-                    with st.expander("Texto bruto extraído (para depuração)"):
-                        st.text_area("Texto extraído", text, height=200)
                     return
                 
                 xml_data.seek(0)
                 csv_data = xml_to_csv(xml_data)
                 
-                display_results(df, xml_data, txt_data, csv_data, text, bank)
+                display_results(csv_data, bank)
 
         except Exception as e:
             st.error(f"❌ Erro no processamento: {str(e)}")
             st.error("Verifique se o arquivo corresponde ao banco selecionado")
-            with st.expander("Texto bruto extraído (para depuração)"):
-                st.text_area("Texto extraído", text, height=200)
 
 if __name__ == "__main__":
     main()

@@ -21,38 +21,18 @@ def display_menu():
     
     return bank, uploaded_file
 
-def display_results(df, xml_data, txt_data, csv_data, text, bank):
+def display_results(csv_data, bank):
     """
     Exibe os resultados do processamento e opções de download.
     """
     st.success("✅ Dados extraídos com sucesso!")
-    st.dataframe(df)
+    #st.dataframe(df)
 
-    expander = st.expander("Opções avançadas")
-    with expander:
-        if st.checkbox("Mostrar texto bruto processado"):
-            st.text_area("Texto extraído", text, height=200)
 
-        st.download_button(
-            "Baixar XML",
-            data=xml_data,
-            file_name=f"extrato_{bank.lower()}.xml",
-            mime="application/xml",
-            help="Download dos dados em formato XML"
-        )
-
-        st.download_button(
-            "Baixar TXT",
-            data=txt_data,
-            file_name=f"extrato_{bank.lower()}.txt",
-            mime="text/plain",
-            help="Download dos dados em formato TXT"
-        )
-
-        st.download_button(
-            "Baixar CSV",
-            data=csv_data,
-            file_name=f"extrato_{bank.lower()}.csv",
-            mime="text/csv",
-            help="Download dos dados em formato CSV"
+    st.download_button(
+        "Baixar CSV",
+        data=csv_data,
+        file_name=f"extrato_{bank.lower()}.csv",
+        mime="text/csv",
+        help="Download dos dados em formato CSV"
         )

@@ -1,14 +1,23 @@
 import re
 import pandas as pd
 from io import BytesIO
-from xml.etree.ElementTree import Element, SubElement, tostring
-from xml.dom import minidom
+from utils import create_xml, create_txt, process_transactions
 
 def preprocess_text(text):
     """
     Pré-processa o texto do Sicoob para dividir transações, ignorando cabeçalho e rodapé.
+    Retorna uma tupla com lista de dicionários de transações e o ano extraído do período.
     """
     lines = [line.strip() for line in text.splitlines() if line.strip()]
+    
+    # Extrair o ano do período (ex.: PERÍODO: 01/04/2025 - 30/04/2025)
+    year = None
+    period_pattern = r"PERÍODO:\s*\d{2}/\d{2}/(\d{4})\s*-\s*\d{2}/\d{2}/\d{4}"
+    for line in lines:
+        match = re.search(period_pattern, line)
+        if match:
+            year = match.group(1)
+            break
     
     start_index = 0
     for i, line in enumerate(lines):
@@ -39,43 +48,50 @@ def preprocess_text(text):
         if re.match(r"^\d{2}/\d{2}\s", line):
             if in_transaction and current_transaction:
                 if pending_value:
-                    transactions.append("\n".join([pending_value] + current_transaction))
+                    transactions.append({"raw": "\n".join([pending_value] + current_transaction)})
                     pending_value = None
                 else:
-                    transactions.append("\n".join(current_transaction))
+                    transactions.append({"raw": "\n".join(current_transaction)})
             current_transaction = [line]
             in_transaction = True
         elif in_transaction:
             current_transaction.append(line)
             if "DOC.:" in line:
                 if pending_value:
-                    transactions.append("\n".join([pending_value] + current_transaction))
+                    transactions.append({"raw": "\n".join([pending_value] + current_transaction)})
                     pending_value = None
                 else:
-                    transactions.append("\n".join(current_transaction))
+                    transactions.append({"raw": "\n".join(current_transaction)})
                 in_transaction = False
                 current_transaction = []
     
     if in_transaction and current_transaction:
         if pending_value:
-            transactions.append("\n".join([pending_value] + current_transaction))
+            transactions.append({"raw": "\n".join([pending_value] + current_transaction)})
         else:
-            transactions.append("\n".join(current_transaction))
+            transactions.append({"raw": "\n".join(current_transaction)})
     
-    return transactions
+    return transactions, year
 
-def extract_transactions(transactions):
+def extract_transactions(transactions, year=None):
     """
     Extrai Data, Descrição, Valor e Tipo (C/D) de cada transação do Sicoob.
+    Usa o ano fornecido para formatar as datas como DD/MM/YYYY.
+    Remove o valor e tipo (ex.: 1.012,29 C) da descrição com pós-processamento robusto.
+    Retorna uma lista de dicionários no formato final.
     """
     data = []
     date_pattern = r"^(\d{2}/\d{2})\s"
     value_pattern = r"(\d{1,3}(?:\.\d{3})*,\d{2})"
     doc_pattern = r"DOC\.:"
+    # Regex para remover valor e tipo da descrição (ex.: 1.012,29 C ou 3.550,95 D)
+    clean_value_type_pattern = r"\d{1,3}(?:\.\d{3})*,\d{2}\s*[CD](?:\s|$)"
     
-    for transaction in transactions:
+    for transaction_dict in transactions:
+        transaction = transaction_dict["raw"]
         lines = transaction.split("\n")
         
+        # Extrair valor
         value = None
         value_match = re.match(value_pattern, lines[0])
         if value_match:
@@ -94,11 +110,15 @@ def extract_transactions(transactions):
         if value.endswith(",00"):
             value = value[:-3]
         
+        # Extrair data
         date_match = re.search(date_pattern, lines[0])
         if not date_match:
             continue
         date = date_match.group(1)
+        if year:
+            date = f"{date}/{year}"  # Adiciona o ano do período (ex.: 01/04/2025)
         
+        # Extrair tipo (C/D)
         transaction_type = None
         for line in lines:
             if re.search(r"[CD]", line):
@@ -108,6 +128,7 @@ def extract_transactions(transactions):
         if not transaction_type:
             continue
         
+        # Extrair descrição até o DOC.:
         doc_match = re.search(doc_pattern, transaction)
         if not doc_match:
             continue
@@ -116,10 +137,18 @@ def extract_transactions(transactions):
         start_idx = date_match.end()
         description = transaction[start_idx:doc_start].strip()
         
+        # Pós-processamento: remover valores e tipos (ex.: 450,22C) da descrição
+        description = re.sub(clean_value_type_pattern, "", description).strip()
+        
+        # Remover quaisquer outros valores monetários remanescentes (ex.: 450,22 sem C/D)
+        description = re.sub(r"\d{1,3}(?:\.\d{3})*,\d{2}", "", description).strip()
+        
+        # Adicionar conteúdo do DOC.: à descrição
         doc_content = transaction[doc_match.end():].strip()
         if doc_content:
             description = f"{description} DOC.: {doc_content}".strip()
         
+        # Normalizar espaços em branco
         description = re.sub(r"\s+", " ", description).strip()
         
         data.append({
@@ -131,65 +160,14 @@ def extract_transactions(transactions):
     
     return data
 
-def create_xml(data):
-    """
-    Cria um arquivo XML a partir dos dados extraídos e retorna o DataFrame e o XML como BytesIO.
-    """
-    df = pd.DataFrame(data)
-    
-    root = Element("Transactions")
-    
-    for transaction in data:
-        trans_elem = SubElement(root, "Transaction")
-        
-        date_elem = SubElement(trans_elem, "Data")
-        date_elem.text = transaction["Data"]
-        
-        desc_elem = SubElement(trans_elem, "Descrição")
-        desc_elem.text = transaction["Descrição"]
-        
-        value_elem = SubElement(trans_elem, "Valor")
-        value_elem.text = transaction["Valor"]
-        
-        type_elem = SubElement(trans_elem, "Tipo")
-        type_elem.text = transaction["Tipo"]
-    
-    rough_string = tostring(root, 'utf-8')
-    reparsed = minidom.parseString(rough_string)
-    pretty_xml = reparsed.toprettyxml(indent="  ")
-    
-    output = BytesIO()
-    output.write(pretty_xml.encode('utf-8'))
-    output.seek(0)
-    
-    return df, output
-
-def create_txt(data):
-    """
-    Cria um arquivo TXT a partir dos dados extraídos e retorna o TXT como BytesIO.
-    """
-    txt_content = ""
-    for transaction in data:
-        txt_content += f"Data: {transaction['Data']}\n"
-        txt_content += f"Descrição: {transaction['Descrição']}\n"
-        txt_content += f"Valor: {transaction['Valor']}\n"
-        txt_content += f"Tipo: {transaction['Tipo']}\n"
-        txt_content += "-" * 50 + "\n"
-    
-    output = BytesIO()
-    output.write(txt_content.encode('utf-8'))
-    output.seek(0)
-    
-    return output
-
 def process(text):
     """
-    Processa o texto extraído para o Sicoob e retorna o DataFrame, XML e TXT.
+    Processa o texto extraído do Sicoob e retorna o DataFrame, XML e TXT.
     """
-    transactions = preprocess_text(text)
-    data = extract_transactions(transactions)
+    transactions, year = preprocess_text(text)
+    data = extract_transactions(transactions, year)
     if not data:
         return None, None, None
-    df, xml_data = create_xml(data)
+    xml_data = create_xml(data)
     txt_data = create_txt(data)
-    return df, xml_data, txt_data
+    return xml_data, txt_data
