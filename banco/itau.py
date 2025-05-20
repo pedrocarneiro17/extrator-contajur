@@ -20,9 +20,23 @@ def convert_date_format(date_str):
 def preprocess_text(text):
     """
     Pré-processa o texto do Itaú para dividir transações, ignorando cabeçalho e rodapé.
+    Extrai o ano do período informado e adiciona às datas das transações no formato DD/MM/YYYY.
     """
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     
+    # Extrair o ano do período (ex.: "lançamentos período: 01/04/2025 até 30/04/2025")
+    year = None
+    for line in lines:
+        period_match = re.search(r"lançamentos período: \d{2}/\d{2}/(\d{4}) até \d{2}/\d{2}/\d{4}", line)
+        if period_match:
+            year = period_match.group(1)
+            break
+    
+    # Se não encontrar o ano, usar um valor padrão (ex.: 2025)
+    if not year:
+        year = "2025"  # Fallback, mas idealmente deveria ser tratado como erro ou configurável
+
+    # Identificar o início e o fim das transações
     start_index = 0
     for i, line in enumerate(lines):
         if "SALDO ANTERIOR" in line:
@@ -53,6 +67,8 @@ def preprocess_text(text):
             if date_match and value_matches:
                 date = date_match.group(1).replace(" ", "")
                 date = convert_date_format(date)
+                # Adicionar o ano ao formato DD/MM/YYYY
+                date_with_year = f"{date}/{year}"
                 value = value_matches[0].group()
                 desc_start = date_match.end()
                 desc_end = value_matches[0].start()
@@ -66,7 +82,7 @@ def preprocess_text(text):
                     valor = valor[:-3]
                 
                 transactions.append({
-                    "Data": date,
+                    "Data": date_with_year,
                     "Descrição": description,
                     "Valor": valor,
                     "Tipo": tipo
