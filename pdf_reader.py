@@ -39,8 +39,8 @@ def read_pdf(file, bank=None):
 def identificar_banco(text):
     """
     Identifica o banco a partir do texto extraído da primeira página do PDF.
-    Diferencia entre Itaú3 (inicia com 'extrato mensal'), Itaú (formato DD / abr), 
-    e Itaú2 (formato DD/MM/YYYY), todos com código '8119'.
+    Diferencia entre Itaú3 (inicia com 'extrato mensal'), Itaú2 (primeira linha contém 'dados gerais' e formato DD/MM/YYYY),
+    e Itaú (contém '8119' e não se encaixa nos outros casos do Itaú).
     """
     if not text:
         return "Erro: Texto vazio ou ilegível"
@@ -57,14 +57,15 @@ def identificar_banco(text):
         if re.match(r"^\s*extrato\s+mensal", first_line):
             return "Itaú3"
 
-        # Procurar por formatos de data
-        for linha in linhas:
-            # Itaú2: Formato DD/MM/YYYY (ex.: 05/03/2025)
-            if re.match(r"^\d{2}/\d{2}/\d{4}$", linha):
-                return "Itaú2"
-            # Itaú: Formato DD / abr (ex.: 05 / mar)
-            if re.match(r"^\d{2}\s*/\s*[a-z]{3}$", linha, re.IGNORECASE):
-                return "Itaú"
+        # Verificar se a primeira linha contém 'dados gerais' (Itaú2)
+        if 'dados gerais' in first_line:
+            # Procurar por formato de data DD/MM/YYYY (ex.: 05/03/2025)
+            for linha in linhas:
+                if re.match(r"^\d{2}/\d{2}/\d{4}$", linha.strip()):
+                    return "Itaú2"
+
+        # Caso não se encaixe em Itaú3 ou Itaú2, mas tenha '8119', é Itaú
+        return "Itaú"
 
     # Outras regras de identificação
     if '00632' in text:
