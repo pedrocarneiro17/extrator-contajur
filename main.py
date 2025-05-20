@@ -1,15 +1,14 @@
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
 import streamlit as st
-from pdf_reader import validate_pdf, read_pdf
+from pdf_reader import validate_pdf, read_pdf, identificar_banco
 from banco import get_processor
 from xml_to_csv import xml_to_csv
 from menu import display_menu, display_results
 
-def main():
-    bank, uploaded_file = display_menu()
+def run_app():
+    """
+    Orquestra o fluxo principal da aplicação Streamlit.
+    """
+    bank, uploaded_file, text = display_menu()
 
     if uploaded_file is not None and bank:
         if not validate_pdf(uploaded_file) or uploaded_file.size == 0:
@@ -18,11 +17,10 @@ def main():
 
         try:
             with st.spinner("Processando arquivo..."):
-                text = read_pdf(uploaded_file)
-                
+                # O texto já foi extraído em display_menu, reutilizamos
                 processor = get_processor(bank)
                 result = processor(text)
-                print(f"Bank: {bank}, Return type: {type(result)}, Return value: {result}")
+                
                 xml_data, txt_data = result
                 
                 if xml_data is None or txt_data is None:
@@ -36,7 +34,6 @@ def main():
 
         except Exception as e:
             st.error(f"❌ Erro no processamento: {str(e)}")
-            st.error("Verifique se o arquivo corresponde ao banco selecionado")
+            st.error("Verifique se o arquivo corresponde ao formato esperado.")
 
-if __name__ == "__main__":
-    main()
+run_app()

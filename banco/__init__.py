@@ -3,6 +3,9 @@ from .itau import process as process_itau
 from .caixa import process as process_caixa
 from .inter import process as process_inter
 from .nubank import process as process_nubank
+from .bradesco import process as process_bradesco
+from .itau2 import process as process_itau2
+from .itau3 import process as process_itau3
 
 BANK_PROCESSORS = {
     "Sicoob": process_sicoob,
@@ -10,6 +13,9 @@ BANK_PROCESSORS = {
     "Caixa": process_caixa,
     "Inter": process_inter,
     "Nubank": process_nubank,
+    "Bradesco": process_bradesco,
+    "Itaú2": process_itau2,
+    "Itaú3": process_itau3
 }
 
 def get_processor(bank):
