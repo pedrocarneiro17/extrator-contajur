@@ -52,11 +52,11 @@ def identificar_banco(text):
         return "Erro: Texto vazio ou ilegível"
 
     # Verificar se é Santander (pelos códigos de agência '3472' ou '3222')
-    if '3472' in text or '3222' in text or '1472' in text:
+    if '3472' in text or '3222' in text:
         return "Santander"
 
     # Verificar se é Itaú (pelo código '8119')
-    if '8119' in text:
+    if '8119' in text or '1472' in text:
         # Verificar se a primeira linha começa com 'extrato mensal' (Itaú3)
         first_line = linhas[0].strip().lower()
         if re.match(r"^\s*extrato\s+mensal", first_line):
