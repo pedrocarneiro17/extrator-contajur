@@ -40,7 +40,8 @@ def identificar_banco(text):
     """
     Identifica o banco a partir do texto extraído da primeira página do PDF.
     Diferencia entre Itaú3 (inicia com 'extrato mensal'), Itaú2 (primeira linha contém 'dados gerais' e formato DD/MM/YYYY),
-    e Itaú (contém '8119' e não se encaixa nos outros casos do Itaú).
+    Itaú (contém '8119' e não se encaixa nos outros casos do Itaú), Santander (contém '3472' ou '3222'),
+    e outros bancos com base em palavras-chave específicas.
     """
     if not text:
         return "Erro: Texto vazio ou ilegível"
@@ -49,6 +50,10 @@ def identificar_banco(text):
     linhas = text.splitlines()
     if not linhas:
         return "Erro: Texto vazio ou ilegível"
+
+    # Verificar se é Santander (pelos códigos de agência '3472' ou '3222')
+    if '3472' in text or '3222' in text:
+        return "Santander"
 
     # Verificar se é Itaú (pelo código '8119')
     if '8119' in text:
