@@ -52,7 +52,7 @@ def identificar_banco(text):
         return "Erro: Texto vazio ou ilegível"
 
     # Verificar se é Santander (pelos códigos de agência '3472' ou '3222')
-    if '3472' in text or '3222' in text:
+    if '3472' in text or '3222' in text or '1472' in text:
         return "Santander"
 
     # Verificar se é Itaú (pelo código '8119')
