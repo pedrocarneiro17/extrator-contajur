@@ -13,7 +13,7 @@ BANK_PROCESSORS = {
     "Sicoob": process_sicoob,
     "Itaú": process_itau,
     "Caixa": process_caixa,
-    "Inter": process_inter,
+    "Banco Inter": process_inter,
     "Nubank": process_nubank,
     "Bradesco": process_bradesco,
     "Itaú2": process_itau2,
