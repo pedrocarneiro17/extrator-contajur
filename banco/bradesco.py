@@ -1,141 +1,139 @@
 import re
-from utils import process_transactions
+import pandas as pd
+from io import BytesIO
+from utils import create_xml, create_txt, process_transactions  # Importar funções do utils
 
 def preprocess_text(text):
     """
-    Pré-processa o texto bruto do extrato do Bradesco para extrair transações.
-    Implementa a lógica de extrair_texto_limpo_pdf (identificação de tabela,
-    junção de descrições quebradas, propagação de datas) e extrai transações
-    no formato {Data, Descrição, Valor, Tipo}.
+    Pré-processa o texto do extrato do Bradesco para dividir transações, ignorando cabeçalho e rodapé.
+    Combina número do documento e descrição em uma única coluna Descrição.
+    Mantém valores no formato brasileiro (ex.: 1.012,29).
     """
-    # Log do texto bruto recebido
-    print("Texto bruto recebido (primeiras 500 caracteres):")
-    print(text[:500] + "..." if len(text) > 500 else text)
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
     
-    # Normaliza o texto e divide em linhas
-    text = re.sub(r"\s+", " ", text.strip())
-    linhas = [linha.strip() for linha in text.splitlines() if linha.strip()]
-    
-    if not linhas:
-        print("Nenhuma linha válida encontrada no texto bruto.")
-        raise ValueError("Nenhuma linha válida encontrada no texto bruto.")
-    
-    print(f"Total de linhas após normalização: {len(linhas)}")
-    
-    # Identifica início da tabela
-    inicio_idx = None
-    for i, linha in enumerate(linhas):
-        if re.search(r"\bData\b.*\bLançamento\b", linha, re.IGNORECASE):
-            inicio_idx = i + 1
-            break
-    
-    # Identifica fim da tabela
-    fim_idx = None
-    for i, linha in enumerate(linhas):
-        if re.search(r"\bTotal\b", linha, re.IGNORECASE):
-            fim_idx = i
-            break
-    
-    if inicio_idx is None or fim_idx is None:
-        print("Cabeçalho da tabela não encontrado. Linhas processadas:")
-        for i, linha in enumerate(linhas[:10]):
-            print(f"Linha {i}: {linha}")
-        raise ValueError("Tabela de lançamentos não encontrada no PDF.")
-    
-    # Fatia linhas e remove linhas com "SALDO ANTERIOR"
-    linhas_tabela = [
-        linha.strip()
-        for linha in linhas[inicio_idx:fim_idx]
-        if linha.strip() and "SALDO ANTERIOR" not in linha.upper()
+    # Palavras-chave para filtrar linhas irrelevantes
+    palavras_ignorar = [
+        'Folha', 'Nome do usuário',
+        'Data da operação', 'Saldos Invest Fácil', 'Os dados acima'
     ]
-    print("Linhas da tabela extraídas:")
-    for i, linha in enumerate(linhas_tabela):
-        print(f"Linha {i}: {linha}")
     
-    if not linhas_tabela:
-        print("Nenhuma linha de transação encontrada na tabela.")
-        raise ValueError("Nenhuma linha de transação encontrada na tabela.")
+    # Padrões regex para identificar cabeçalhos/rodapés genéricos
+    padroes_ignorar = [
+        r'CNPJ:\s*\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}',  # CNPJ
+        r'AGENCIA:\s*\d{4}-\d',                       # Agência
+        r'CONTA:\s*\d+-\d',                           # Conta
+        r'\d{2}/\d{2}/\d{4}\s*-\s*\d{2}/\d{2}/\d{4}' # Período (ex.: 01/04/2025 - 30/04/2025)
+    ]
     
-    # Junta descrições quebradas
-    linhas_corrigidas = []
-    buffer = ""
-    for linha in linhas_tabela:
-        if re.search(r"-?\d{1,3}(?:\.\d{3})*,\d{2}\b", linha):
-            if buffer:
-                linha = buffer.strip() + ' ' + linha.strip()
-                buffer = ""
-            linha = re.sub(r"\s+", " ", linha.strip())
-            linhas_corrigidas.append(linha)
-        else:
-            buffer += "  " + linha.strip()
-    print("Linhas após junção de descrições:")
-    for i, linha in enumerate(linhas_corrigidas):
-        print(f"Linha {i}: {linha}")
+    # Padrão para limpar informações de empresa/CNPJ no início da linha
+    padrao_limpeza_cabecalho = r'^.*?CNPJ:\s*\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\s*\|?\s*'
     
-    # Propaga datas
-    linhas_final = []
-    data_atual = ""
-    for linha in linhas_corrigidas:
-        match_data = re.match(r"^(\d{2}/\d{2}/\d{4})\s+(.*)", linha)
-        if match_data:
-            data_atual = match_data.group(1)
-            restante = match_data.group(2)
-        else:
-            restante = linha
-        linha_formatada = f"{data_atual} {restante}".strip()
-        linha_formatada = re.sub(r"\s+", " ", linha_formatada)
-        linhas_final.append(linha_formatada)
-    print("Linhas após propagação de datas:")
-    for i, linha in enumerate(linhas_final):
-        print(f"Linha {i}: {linha}")
+    # Padrão para valores monetários
+    padrao_valor_monetario = r'^-?\d+\.\d{3},\d{2}$|^-?\d+,\d{2}$'
     
-    # Extrai transações
     transactions = []
-    value_pattern = r"-?\d{1,3}(?:\.\d{3})*,\d{2}\b"
+    i = 0
+    found_saldo_anterior = False
+    current_transacao = []
+    current_data = None
     
-    for linha in linhas_final:
-        # Extrai data
-        match_data = re.match(r"^(\d{2}/\d{2}/\d{4})\s+(.*)", linha)
-        if not match_data:
-            print(f"Linha ignorada (sem data válida): {linha}")
+    while i < len(lines):
+        linha = lines[i].strip()
+        
+        # Ignorar linhas vazias ou que contenham palavras-chave irrelevantes
+        if not linha or any(palavra in linha for palavra in palavras_ignorar):
+            i += 1
             continue
         
-        data = match_data.group(1)
-        restante = match_data.group(2)
-        
-        # Encontra o primeiro valor monetário
-        value_match = re.search(value_pattern, restante)
-        if not value_match:
-            print(f"Linha ignorada (sem valor monetário): {linha}")
+        # Regra especial: se encontrar "Extrato Mensal", pular a linha atual e a próxima
+        if 'Extrato Mensal' in linha:
+            i += 2
             continue
         
-        # O primeiro valor é o valor da transação
-        valor = value_match.group(0).replace("-", "").strip()
-        tipo = "C" if not value_match.group(0).startswith("-") else "D"
+        # Verificar se a linha contém "Total" seguido de um valor monetário
+        if linha.startswith('Total') and i + 1 < len(lines):
+            proxima_linha = lines[i + 1].strip()
+            if re.match(padrao_valor_monetario, proxima_linha):
+                break  # Parar, excluindo "Total" e tudo abaixo
         
-        # Captura a descrição como tudo antes do primeiro valor monetário
-        desc_end = value_match.start()
-        descricao = restante[:desc_end].strip()
-        descricao = re.sub(r"\s+", " ", descricao)
+        # Limpar informações de cabeçalho (ex.: "NOME DA EMPRESA | CNPJ: ...")
+        linha_limpa = re.sub(padrao_limpeza_cabecalho, '', linha).strip()
+        if not linha_limpa or any(re.search(padrao, linha_limpa) for padrao in padroes_ignorar):
+            i += 1
+            continue
         
-        # Remove ",00" para números inteiros
+        # Verificar se a linha contém "SALDO ANTERIOR"
+        if "SALDO ANTERIOR" in linha:
+            found_saldo_anterior = True
+            i += 2  # Pular "SALDO ANTERIOR" e a linha seguinte (valor)
+            continue
+        
+        # Após encontrar "SALDO ANTERIOR", processar as linhas
+        if found_saldo_anterior:
+            # Verificar se a linha é uma data (formato DD/MM/YYYY)
+            if re.match(r'\d{2}/\d{2}/\d{4}', linha_limpa):
+                # Se já existe uma transação acumulada, formatá-la e adicionar
+                if current_transacao and len(current_transacao) >= 4:
+                    descricao = f"{current_transacao[0]} {current_transacao[1]}"  # Combinar documento e descrição
+                    valor = current_transacao[2].replace("-", "").strip()  # Remover sinal de menos
+                    if valor.endswith(",00"):
+                        valor = valor[:-3]  # Remover ",00" se for inteiro
+                    tipo = "D" if current_transacao[2].startswith("-") else "C"  # Determinar tipo (C ou D)
+                    transactions.append({
+                        "Data": current_data,
+                        "Descrição": descricao,
+                        "Valor": valor,
+                        "Tipo": tipo
+                    })
+                    current_transacao = []
+                current_data = linha_limpa
+            elif current_data:  # Linhas de transação
+                # Verificar se a linha é um valor numérico (crédito, débito ou saldo)
+                if re.match(padrao_valor_monetario, linha_limpa):
+                    current_transacao.append(linha_limpa)
+                    # Se já temos descrição, documento, crédito/débito e saldo, processar
+                    if len(current_transacao) >= 4:
+                        descricao = f"{current_transacao[0]} {current_transacao[1]}"  # Combinar documento e descrição
+                        valor = current_transacao[2].replace("-", "").strip()  # Remover sinal de menos
+                        if valor.endswith(",00"):
+                            valor = valor[:-3]  # Remover ",00" se for inteiro
+                        tipo = "D" if current_transacao[2].startswith("-") else "C"  # Determinar tipo (C ou D)
+                        transactions.append({
+                            "Data": current_data,
+                            "Descrição": descricao,
+                            "Valor": valor,
+                            "Tipo": tipo
+                        })
+                        current_transacao = []
+                else:
+                    # Tratar número de documento ou descrição
+                    if re.match(r'^\d+$', linha_limpa):  # Se for apenas número (documento)
+                        if len(current_transacao) == 1:  # Já temos uma descrição
+                            current_transacao.append(linha_limpa)  # Adicionar como documento
+                        else:
+                            current_transacao = [linha_limpa]  # Iniciar nova transação com documento
+                    else:
+                        # Se for uma descrição, concatenar com a anterior, se houver
+                        if current_transacao and not re.match(r'^\d+$', current_transacao[-1]):
+                            current_transacao[-1] = current_transacao[-1] + ' ' + linha_limpa
+                        else:
+                            current_transacao.append(linha_limpa)
+        
+        i += 1
+    
+    # Adicionar a última transação, se houver
+    if current_transacao and len(current_transacao) >= 4 and current_data:
+        descricao = f"{current_transacao[0]} {current_transacao[1]}"  # Combinar documento e descrição
+        valor = current_transacao[2].replace("-", "").strip()  # Remover sinal de menos
         if valor.endswith(",00"):
-            valor = valor[:-3]
-        
-        transacao = {
-            "Data": data,
+            valor = valor[:-3]  # Remover ",00" se for inteiro
+        tipo = "D" if current_transacao[2].startswith("-") else "C"  # Determinar tipo (C ou D)
+        transactions.append({
+            "Data": current_data,
             "Descrição": descricao,
             "Valor": valor,
             "Tipo": tipo
-        }
-        transactions.append(transacao)
-        print(f"Transação extraída: {transacao}")
-    
-    if not transactions:
-        print("Nenhuma transação extraída. Linhas processadas:")
-        for i, linha in enumerate(linhas_final):
-            print(f"Linha {i}: {linha}")
-        raise ValueError("Nenhuma transação válida encontrada no extrato.")
+        })
     
     return transactions
 
@@ -147,6 +145,6 @@ def extract_transactions(transactions):
 
 def process(text):
     """
-    Processa o texto extraído do extrato do Bradesco e retorna xml_data e txt_data.
+    Processa o texto extraído do extrato do Bradesco e retorna o DataFrame, XML e TXT.
     """
     return process_transactions(text, preprocess_text, extract_transactions)

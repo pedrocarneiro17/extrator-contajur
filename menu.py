@@ -1,5 +1,6 @@
 import streamlit as st
 from pdf_reader import read_pdf, identificar_banco
+from pdf_reader2 import read_pdf2
 
 def display_menu():
     """
@@ -18,17 +19,27 @@ def display_menu():
     text = None
     if uploaded_file is not None:
         try:
+            # Resetar o ponteiro do arquivo para o início
+            uploaded_file.seek(0)
+            # Tentar identificar o banco com read_pdf (provavelmente pdfplumber)
             text = read_pdf(uploaded_file)
             bank = identificar_banco(text)
             
             if bank.startswith("Erro") or bank == "Banco não identificado":
                 st.error(bank)
                 bank = None
+                text = None
             else:
                 st.success(f"Banco identificado: **{bank}**")
+                # Se for Bradesco, reler com fitz
+                if bank == 'Bradesco':
+                    uploaded_file.seek(0)  # Resetar o ponteiro novamente
+                    text = read_pdf2(uploaded_file)
+                
         except Exception as e:
             st.error(f"Erro ao processar o PDF: {str(e)}")
             bank = None
+            text = None
 
     return bank, uploaded_file, text
 
