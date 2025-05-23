@@ -86,6 +86,13 @@ def identificar_banco(text):
     # Outras regras de identificação
     if '00632' in text:
         return "Bradesco"
+    if '0179' in text:
+        return "Sicredi"
+    
+    first_line = linhas[0].strip().lower()
+    if 'pagseguro' in first_line:
+        return "PagBank"
+    
     if any(palavra.lower().startswith('sicoob') for palavra in text.split()):
         return "Sicoob"
     if len(linhas) >= 3 and 'Banco Inter' in linhas[2]:
