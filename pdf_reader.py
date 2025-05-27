@@ -41,22 +41,22 @@ def identificar_banco(text):
     Identifica o banco a partir do texto extraído da primeira página do PDF.
     Diferencia entre Itaú3 (inicia com 'extrato mensal'), Itaú2 (primeira linha contém 'dados gerais' e formato DD/MM/YYYY),
     Itaú (contém '8119' e não se encaixa nos outros casos do Itaú), Santander (contém '3472' ou '3222'),
-    Nubank (contém 'Agência 0001' e 'ouvidoria@nubank.com.br' no rodapé), e outros bancos com base em palavras-chave específicas.
+    Nubank (contém 'Agência 0001' e 'ouvidoria@nubank.com.br' no rodapé), Sicoob1 (inicia com 'sicoob'),
+    Sicoob2 (inicia com data e contém 'Sicoob | Internet Banking' e 'SISTEMA'), e outros bancos.
     """
     if not text:
         return "Erro: Texto vazio ou ilegível"
 
-    # Quebra o texto em linhas
+    # Quebra o texto em linhas e palavras
     linhas = text.splitlines()
     if not linhas:
         return "Erro: Texto vazio ou ilegível"
+    palavras = text.split()
 
     # Verificar se é Nubank: 'Agência 0001' no texto e 'ouvidoria@nubank.com.br' no rodapé
     if 'Agência 0001' in text:
-        # Dividir o texto em páginas usando 'Extrato gerado' como marcador
         paginas = re.split(r'Extrato gerado dia \d{2} de \w+ de \d{4} às \d{2}:\d{2} \d de \d', text)
         for pagina in paginas:
-            # Pegar as últimas 10 linhas da página para verificar o rodapé
             linhas_pagina = [linha.strip() for linha in pagina.splitlines() if linha.strip()]
             ultimas_linhas = linhas_pagina[-10:] if len(linhas_pagina) >= 10 else linhas_pagina
             if any('ouvidoria@nubank.com.br' in linha.lower() for linha in ultimas_linhas):
@@ -68,19 +68,13 @@ def identificar_banco(text):
 
     # Verificar se é Itaú (pelo código '8119' ou '1472')
     if '8119' in text or '1472' in text:
-        # Verificar se a primeira linha começa com 'extrato mensal' (Itaú3)
         first_line = linhas[0].strip().lower()
         if re.match(r"^\s*extrato\s+mensal", first_line):
             return "Itaú3"
-
-        # Verificar se a primeira linha contém 'dados gerais' (Itaú2)
         if 'dados gerais' in first_line:
-            # Procurar por formato de data DD/MM/YYYY (ex.: 05/03/2025)
             for linha in linhas:
                 if re.match(r"^\d{2}/\d{2}/\d{4}$", linha.strip()):
                     return "Itaú2"
-
-        # Caso não se encaixe em Itaú3 ou Itaú2, mas tenha '8119' ou '1472', é Itaú
         return "Itaú"
 
     # Outras regras de identificação
@@ -93,8 +87,18 @@ def identificar_banco(text):
     if 'pagseguro' in first_line:
         return "PagBank"
     
-    if any(palavra.lower().startswith('sicoob') for palavra in text.split()):
-        return "Sicoob"
+
+    
+    # Verificar Sicoob1: começa com 'sicoob'
+    if palavras and palavras[0].lower().startswith('sicoob'):
+        return "Sicoob1"
+
+    # Verificar Sicoob2: primeira linha contém 'Sicoob | Internet Banking' e texto contém 'SISTEMA'
+    if (linhas and "Sicoob | Internet Banking" in linhas[0].strip() and 
+        "SISTEMA DE COOPERATIVAS DE CRÉDITO DO BRASIL" in text):
+        return "Sicoob2"
+        
+    
     if len(linhas) >= 3 and 'Banco Inter' in linhas[2]:
         return "Banco Inter"
     if any(palavra.lower() == 'extrato' for palavra in text.split()):

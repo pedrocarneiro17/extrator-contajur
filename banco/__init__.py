@@ -1,24 +1,26 @@
 from .sicoob import process as process_sicoob
+from .sicoob2 import process as process_sicoob2
 from .itau import process as process_itau
+from .itau2 import process as process_itau2
+from .itau3 import process as process_itau3
 from .caixa import process as process_caixa
 from .inter import process as process_inter
 from .nubank import process as process_nubank
 from .bradesco import process as process_bradesco
-from .itau2 import process as process_itau2
-from .itau3 import process as process_itau3
 from .santander import process as process_santander
 from .sicredi import process as process_sicredi
 from .pagbank import process as process_pagbank
 
 BANK_PROCESSORS = {
-    "Sicoob": process_sicoob,
+    "Sicoob1": process_sicoob,
+    "Sicoob2": process_sicoob2,
     "Itaú": process_itau,
+    "Itaú2": process_itau2,
+    "Itaú3": process_itau3,
     "Caixa": process_caixa,
     "Banco Inter": process_inter,
     "Nubank": process_nubank,
     "Bradesco": process_bradesco,
-    "Itaú2": process_itau2,
-    "Itaú3": process_itau3,
     "Santander": process_santander,
     "Sicredi": process_sicredi,
     "PagBank": process_pagbank
