@@ -5,7 +5,8 @@ from utils import create_xml, create_txt, process_transactions
 
 def preprocess_text(text):
     """
-    Pré-processa o texto do Sicoob para dividir transações, ignorando cabeçalho e rodapé.
+    Pré-processa o texto do Sicoob no formato estruturado do PyMuPDF.
+    Agrupa transações a partir de uma data até DOC.: ou SALDO DO DIA.
     Retorna uma tupla com lista de dicionários de transações e o ano extraído do período.
     """
     lines = [line.strip() for line in text.splitlines() if line.strip()]
@@ -19,6 +20,7 @@ def preprocess_text(text):
             year = match.group(1)
             break
     
+    # Identificar início e fim das transações
     start_index = 0
     for i, line in enumerate(lines):
         if "DATA  HISTÓRICO  VALOR" in line:
@@ -36,120 +38,94 @@ def preprocess_text(text):
     transactions = []
     current_transaction = []
     in_transaction = False
-    pending_value = None
-    
-    value_pattern = r"^\d{1,3}(?:\.\d{3})*,\d{2}$"
+    date_pattern = r"^\d{2}/\d{2}\s*$"
     
     for line in transaction_lines:
-        if re.match(value_pattern, line):
-            pending_value = line
-            continue
-        
-        if re.match(r"^\d{2}/\d{2}\s", line):
+        if re.match(date_pattern, line):
             if in_transaction and current_transaction:
-                if pending_value:
-                    transactions.append({"raw": "\n".join([pending_value] + current_transaction)})
-                    pending_value = None
-                else:
-                    transactions.append({"raw": "\n".join(current_transaction)})
+                transactions.append({"raw": "\n".join(current_transaction)})
             current_transaction = [line]
             in_transaction = True
         elif in_transaction:
             current_transaction.append(line)
-            if "DOC.:" in line:
-                if pending_value:
-                    transactions.append({"raw": "\n".join([pending_value] + current_transaction)})
-                    pending_value = None
-                else:
-                    transactions.append({"raw": "\n".join(current_transaction)})
+            if "DOC.:" in line or "SALDO DO DIA" in line or "SALDO ANTERIOR" in line or "SALDO BLOQ" in line:
+                transactions.append({"raw": "\n".join(current_transaction)})
                 in_transaction = False
                 current_transaction = []
     
     if in_transaction and current_transaction:
-        if pending_value:
-            transactions.append({"raw": "\n".join([pending_value] + current_transaction)})
-        else:
-            transactions.append({"raw": "\n".join(current_transaction)})
+        transactions.append({"raw": "\n".join(current_transaction)})
     
     return transactions, year
 
 def extract_transactions(transactions, year=None):
     """
     Extrai Data, Descrição, Valor e Tipo (C/D) de cada transação do Sicoob.
+    Remove apenas as linhas de valor e tipo, preservando a descrição original.
+    Descarta transações de SALDO DO DIA, SALDO ANTERIOR ou SALDO BLOQ.
     Usa o ano fornecido para formatar as datas como DD/MM/YYYY.
-    Remove o valor e tipo (ex.: 1.012,29 C) da descrição com pós-processamento robusto.
     Retorna uma lista de dicionários no formato final.
     """
     data = []
-    date_pattern = r"^(\d{2}/\d{2})\s"
-    value_pattern = r"(\d{1,3}(?:\.\d{3})*,\d{2})"
+    date_pattern = r"^(\d{2}/\d{2})\s*$"
+    value_pattern = r"(\d{1,3}(?:\.\d{3})*,\d{2})([CD])?"
+    type_pattern = r"^[CD]$"
     doc_pattern = r"DOC\.:"
-    # Regex para remover valor e tipo da descrição (ex.: 1.012,29 C ou 3.550,95 D)
-    clean_value_type_pattern = r"\d{1,3}(?:\.\d{3})*,\d{2}\s*[CD](?:\s|$)"
     
     for transaction_dict in transactions:
         transaction = transaction_dict["raw"]
         lines = transaction.split("\n")
         
-        # Extrair valor
-        value = None
-        value_match = re.match(value_pattern, lines[0])
-        if value_match:
-            value = value_match.group(1)
-            lines = lines[1:]
-        else:
-            for line in lines:
-                value_match = re.search(value_pattern, line)
-                if value_match:
-                    value = value_match.group(1)
-                    break
-        
-        if not value:
+        # Ignorar transações de saldo
+        if any(s in transaction for s in ["SALDO DO DIA", "SALDO ANTERIOR", "SALDO BLOQ"]):
             continue
         
-        if value.endswith(",00"):
-            value = value[:-3]
-        
         # Extrair data
-        date_match = re.search(date_pattern, lines[0])
+        date_match = re.match(date_pattern, lines[0])
         if not date_match:
             continue
         date = date_match.group(1)
         if year:
-            date = f"{date}/{year}"  # Adiciona o ano do período (ex.: 01/04/2025)
+            date = f"{date}/{year}"
         
-        # Extrair tipo (C/D)
+        # Extrair valor e tipo
+        value = None
         transaction_type = None
-        for line in lines:
-            if re.search(r"[CD]", line):
-                transaction_type = re.search(r"[CD]", line).group()
+        value_line_index = None
+        type_line_index = None
+        for i, line in enumerate(lines[1:], start=1):
+            value_match = re.match(value_pattern, line.strip())
+            if value_match:
+                value = value_match.group(1)
+                value_line_index = i
+                transaction_type = value_match.group(2)
+                if not transaction_type and i + 1 < len(lines) and re.match(type_pattern, lines[i + 1].strip()):
+                    transaction_type = lines[i + 1].strip()
+                    type_line_index = i + 1
                 break
         
-        if not transaction_type:
+        if not value or not transaction_type:
             continue
+        
+        if value.endswith(",00"):
+            value = value[:-3]
         
         # Extrair descrição até o DOC.:
         doc_match = re.search(doc_pattern, transaction)
         if not doc_match:
             continue
         
-        doc_start = doc_match.start()
-        start_idx = date_match.end()
-        description = transaction[start_idx:doc_start].strip()
+        # Construir descrição, excluindo linhas de valor e tipo
+        description_lines = []
+        for i, line in enumerate(lines[1:], start=1):
+            if i == value_line_index or i == type_line_index:
+                continue
+            if "DOC.:" in line:
+                description_lines.append(line)
+                break
+            description_lines.append(line)
         
-        # Pós-processamento: remover valores e tipos (ex.: 450,22C) da descrição
-        description = re.sub(clean_value_type_pattern, "", description).strip()
-        
-        # Remover quaisquer outros valores monetários remanescentes (ex.: 450,22 sem C/D)
-        description = re.sub(r"\d{1,3}(?:\.\d{3})*,\d{2}", "", description).strip()
-        
-        # Adicionar conteúdo do DOC.: à descrição
-        doc_content = transaction[doc_match.end():].strip()
-        if doc_content:
-            description = f"{description} DOC.: {doc_content}".strip()
-        
-        # Normalizar espaços em branco
-        description = re.sub(r"\s+", " ", description).strip()
+        description = " ".join(description_lines).strip()
         
         data.append({
             "Data": date,
