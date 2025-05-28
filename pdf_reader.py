@@ -68,6 +68,9 @@ def identificar_banco(text):
             ultimas_linhas = linhas_pagina[-10:] if len(linhas_pagina) >= 10 else linhas_pagina
             if any('ouvidoria@nubank.com.br' in linha.lower() for linha in ultimas_linhas):
                 return "Nubank"
+            
+    if '0179' in text:
+        return "Sicredi"
 
     # Verificar se é Santander (pelos códigos de agência '3472' ou '3222')
     if '3472' in text or '3222' in text:
@@ -87,8 +90,6 @@ def identificar_banco(text):
     # Outras regras de identificação
     if '00632' in text:
         return "Bradesco"
-    if '0179' in text:
-        return "Sicredi"
     
     first_line = linhas[0].strip().lower()
     if 'pagseguro' in first_line:
