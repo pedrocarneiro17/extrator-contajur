@@ -36,10 +36,13 @@ def read_pdf(file, bank=None):
     except Exception as e:
         raise Exception(f"Erro ao ler o PDF: {str(e)}")
 
+import re
+
 def identificar_banco(text):
     """
     Identifica o banco a partir do texto extraído da primeira página do PDF.
-    Diferencia entre Itaú3 (inicia com 'extrato mensal'), Itaú2 (primeira linha contém 'dados gerais' e formato DD/MM/YYYY),
+    Diferencia entre Stone (terceira linha contém 'Instituição Stone Instituição de Pagamento S.A.'),
+    Itaú3 (inicia com 'extrato mensal'), Itaú2 (primeira linha contém 'dados gerais' e formato DD/MM/YYYY),
     Itaú (contém '8119' e não se encaixa nos outros casos do Itaú), Santander (contém '3472' ou '3222'),
     Nubank (contém 'Agência 0001' e 'ouvidoria@nubank.com.br' no rodapé), Sicoob1 (inicia com 'sicoob'),
     Sicoob2 (inicia com data e contém 'Sicoob | Internet Banking' e 'SISTEMA'), e outros bancos.
@@ -52,6 +55,10 @@ def identificar_banco(text):
     if not linhas:
         return "Erro: Texto vazio ou ilegível"
     palavras = text.split()
+
+    # Verificar se é Stone: terceira linha contém 'Instituição Stone Instituição de Pagamento S.A.'
+    if len(linhas) >= 3 and 'Instituição Stone Instituição' in linhas[2].strip():
+        return "Stone"
 
     # Verificar se é Nubank: 'Agência 0001' no texto e 'ouvidoria@nubank.com.br' no rodapé
     if 'Agência 0001' in text:
@@ -87,8 +94,6 @@ def identificar_banco(text):
     if 'pagseguro' in first_line:
         return "PagBank"
     
-
-    
     # Verificar Sicoob1: começa com 'sicoob'
     if palavras and palavras[0].lower().startswith('sicoob'):
         return "Sicoob1"
@@ -97,11 +102,12 @@ def identificar_banco(text):
     if (linhas and "Sicoob | Internet Banking" in linhas[0].strip() and 
         "SISTEMA DE COOPERATIVAS DE CRÉDITO DO BRASIL" in text):
         return "Sicoob2"
-        
     
     if len(linhas) >= 3 and 'Banco Inter' in linhas[2]:
         return "Banco Inter"
+    
     if any(palavra.lower() == 'extrato' for palavra in text.split()):
         return "Caixa"
 
     return "Banco não identificado"
+
