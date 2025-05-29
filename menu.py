@@ -32,7 +32,7 @@ def display_menu():
             else:
                 st.success(f"Banco identificado: **{bank}**")
                 # Se for Bradesco, reler com fitz
-                if bank == 'Bradesco' or bank == 'Sicoob1' or bank == 'Sicoob2' or bank == 'Stone':
+                if bank == 'Bradesco' or bank == 'Sicoob1' or bank == 'Sicoob2' or bank == 'Stone' or bank == 'Banco do Brasil1':
                     uploaded_file.seek(0)  # Resetar o ponteiro novamente
                     text = read_pdf2(uploaded_file)
                 

@@ -91,6 +91,12 @@ def identificar_banco(text):
     if '00632' in text:
         return "Bradesco"
     
+    if '473-1' in text and text.strip().split()[0].lower() == 'extrato':
+        return "Banco do Brasil2"
+    
+    if '473-1' in text:
+        return "Banco do Brasil1"
+    
     first_line = linhas[0].strip().lower()
     if 'pagseguro' in first_line:
         return "PagBank"
