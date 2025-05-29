@@ -59,16 +59,9 @@ def identificar_banco(text):
     # Verificar se é Stone: terceira linha contém 'Instituição Stone Instituição de Pagamento S.A.'
     if len(linhas) >= 3 and 'Instituição Stone Instituição' in linhas[2].strip():
         return "Stone"
-
-    # Verificar se é Nubank: 'Agência 0001' no texto e 'ouvidoria@nubank.com.br' no rodapé
-    if 'Agência 0001' in text:
-        paginas = re.split(r'Extrato gerado dia \d{2} de \w+ de \d{4} às \d{2}:\d{2} \d de \d', text)
-        for pagina in paginas:
-            linhas_pagina = [linha.strip() for linha in pagina.splitlines() if linha.strip()]
-            ultimas_linhas = linhas_pagina[-10:] if len(linhas_pagina) >= 10 else linhas_pagina
-            if any('ouvidoria@nubank.com.br' in linha.lower() for linha in ultimas_linhas):
-                return "Nubank"
-            
+    
+    if 'ouvidoria@nubank.com.br' in text:
+        return "Nubank"
 
     # Verificar se é Santander (pelos códigos de agência '3472' ou '3222')
     if '3472' in text or '3222' in text:
