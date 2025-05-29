@@ -69,23 +69,10 @@ def identificar_banco(text):
             if any('ouvidoria@nubank.com.br' in linha.lower() for linha in ultimas_linhas):
                 return "Nubank"
             
-    if '0179' in text:
-        return "Sicredi"
 
     # Verificar se é Santander (pelos códigos de agência '3472' ou '3222')
     if '3472' in text or '3222' in text:
         return "Santander"
-
-    # Verificar se é Itaú (pelo código '8119' ou '1472')
-    if '8119' in text or '1472' in text:
-        first_line = linhas[0].strip().lower()
-        if re.match(r"^\s*extrato\s+mensal", first_line):
-            return "Itaú3"
-        if 'dados gerais' in first_line:
-            for linha in linhas:
-                if re.match(r"^\d{2}/\d{2}/\d{4}$", linha.strip()):
-                    return "Itaú2"
-        return "Itaú"
 
     # Outras regras de identificação
     if '00632' in text:
@@ -96,6 +83,9 @@ def identificar_banco(text):
     
     if '473-1' in text:
         return "Banco do Brasil1"
+    
+    if '0179' in text:
+        return "Sicredi"
     
     first_line = linhas[0].strip().lower()
     if 'pagseguro' in first_line:
@@ -112,6 +102,17 @@ def identificar_banco(text):
     
     if len(linhas) >= 3 and 'Banco Inter' in linhas[2]:
         return "Banco Inter"
+    
+        # Verificar se é Itaú (pelo código '8119' ou '1472')
+    if '8119' in text or '1472' in text:
+        first_line = linhas[0].strip().lower()
+        if re.match(r"^\s*extrato\s+mensal", first_line):
+            return "Itaú3"
+        if 'dados gerais' in first_line:
+            for linha in linhas:
+                if re.match(r"^\d{2}/\d{2}/\d{4}$", linha.strip()):
+                    return "Itaú2"
+        return "Itaú"
     
     if any(palavra.lower() == 'extrato' for palavra in text.split()):
         return "Caixa"
