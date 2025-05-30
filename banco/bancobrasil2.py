@@ -13,8 +13,7 @@ def preprocess_text(text):
     transacao_atual = []
     encontrou_marcador_inicio = False
     ignorar_ate_data = False
-    date_pattern = re.compile(r'^\d{2}/\d{2}/\d{3,5}')  # DD/MM/YYY, DD/MM/YYYY ou DD/MM/YYYYY
-    value_pattern = re.compile(r'\d{1,3}(?:\.\d{3})*,\d{2}')
+    date_pattern = re.compile(r'^\d{2}/\d{2}/\d{2,4}')  # Aceita DD/MM/YY e DD/MM/YYYY
     
     for linha in linhas:
         linha = linha.strip()
@@ -85,12 +84,12 @@ def extrair_dicionario(transacao):
         return None
     
     # Extrair a data
-    date_pattern = re.compile(r'^\d{2}/\d{2}/\d{3,5}')
+    date_pattern = re.compile(r'^\d{2}/\d{2}/\d{2,4}')
     if not date_pattern.match(partes[0]):
         return None
     data = partes[0]
-    # Corrigir datas incompletas ou erradas
-    if len(data) == 9:  # Formato DD/MM/YYY
+    # Corrigir datas no formato DD/MM/YY ou DD/MM/YYYY
+    if len(data) == 8:  # Formato DD/MM/YY
         data = data[:6] + '20' + data[6:]
     elif len(data) == 11:  # Formato DD/MM/YYYYY (ex.: 13/03/20202)
         data = data[:6] + '2025'
@@ -144,5 +143,4 @@ def extract_transactions(transactions):
     return transactions
 
 def process(text):
- 
     return process_transactions(text, preprocess_text, extract_transactions)
