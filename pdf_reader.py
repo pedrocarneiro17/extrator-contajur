@@ -112,6 +112,9 @@ def identificar_banco(text):
     
     if 'ASAAS Gestão Financeira Instituição de Pagamento S.A.' in text:
         return "Asaas"
+    
+    if 'Cora SCFI' in text:
+        return "Cora"
 
     if any(palavra.lower() == 'extrato' for palavra in text.split()):
         return "Caixa"
