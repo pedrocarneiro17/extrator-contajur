@@ -109,6 +109,9 @@ def identificar_banco(text):
     
     if 'Extrato da Conta Digital iFood' in text:
         return "iFood"
+    
+    if 'ASAAS Gestão Financeira Instituição de Pagamento S.A.' in text:
+        return "Asaas"
 
     if any(palavra.lower() == 'extrato' for palavra in text.split()):
         return "Caixa"
