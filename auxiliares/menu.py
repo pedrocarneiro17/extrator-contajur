@@ -1,7 +1,6 @@
 import streamlit as st
-from pdf_reader import read_pdf
-from pdf_reader2 import read_pdf2
-from identificador import identificar_banco
+from auxiliares.pdf_reader import read_pdf
+from auxiliares.pdf_reader2 import read_pdf2
 
 def display_menu():
     """

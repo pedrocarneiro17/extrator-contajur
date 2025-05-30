@@ -1,7 +1,5 @@
 import re
-import pandas as pd
-from io import BytesIO
-from utils import create_xml, create_txt, process_transactions  # Importar a nova função
+from auxiliares.utils import process_transactions  
 
 def preprocess_text(text):
     """

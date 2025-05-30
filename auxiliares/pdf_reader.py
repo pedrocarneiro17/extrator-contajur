@@ -1,6 +1,6 @@
 from pathlib import Path
 import pdfplumber
-from identificador import identificar_banco
+from auxiliares.identificador import identificar_banco
 
 def validate_pdf(file):
     """Valida se o arquivo é um PDF válido."""

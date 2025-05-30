@@ -1,5 +1,5 @@
 import re
-from utils import create_xml, create_txt, process_transactions
+from auxiliares.utils import process_transactions
 
 def preprocess_text(text):
     """

@@ -1,8 +1,5 @@
 import re
-import pandas as pd
-from io import BytesIO
-from utils import create_xml, create_txt, process_transactions  # Importar funções do utils
-
+from auxiliares.utils import process_transactions  
 def preprocess_text(text):
     """
     Pré-processa o texto do extrato da LOFT DA SERRA LTDA para extrair transações, ignorando cabeçalho e rodapé.

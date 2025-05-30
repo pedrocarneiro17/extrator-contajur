@@ -1,8 +1,8 @@
 import streamlit as st
-from pdf_reader import validate_pdf, read_pdf, identificar_banco
+from auxiliares.pdf_reader import validate_pdf
 from banco import get_processor
-from xml_to_csv import xml_to_csv
-from menu import display_menu, display_results
+from auxiliares.xml_to_csv import xml_to_csv
+from auxiliares.menu import display_menu, display_results
 
 def run_app():
     """

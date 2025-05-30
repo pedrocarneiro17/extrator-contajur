@@ -1,14 +1,9 @@
-import re
-import pandas as pd
-from io import BytesIO
 from pathlib import Path
 import fitz  # PyMuPDF
-from utils import create_xml, create_txt, process_transactions  # Importar funções do utils
 
 def validate_pdf(file):
     """
     Valida se o arquivo fornecido é um PDF verificando sua extensão.
-    Retorna True se válido, False caso contrário.
     """
     if file is None:
         return False
