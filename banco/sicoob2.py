@@ -1,13 +1,10 @@
 import re
-from auxiliares.utils import create_xml, create_txt, process_transactions
+from auxiliares.utils import process_transactions
 
 def preprocess_text(text):
     """
-    Pré-processa o texto do Sicoob no novo formato, agrupando transações por data.
-    Extrai o ano da primeira palavra do texto (data de retirada do extrato).
-    Separa linhas de saldo (SALDO DO DIA, SALDO ANTERIOR, SALDO BLOQUEADO) em blocos distintos.
-    Ignora linhas que contêm 'https://www.sicoob.com.br/sicoobnet/ib/#/home-extrato' e as duas linhas acima.
-    Retorna uma lista de dicionários com os blocos de transações e o ano extraído.
+    Pré-processa o texto do Sicoob no novo formato, extraindo todas as informações necessárias.
+    Retorna uma lista de dicionários com os dados das transações no formato final.
     """
     # Dividir o texto em linhas e remover linhas vazias
     all_lines = [line.strip() for line in text.splitlines() if line.strip()]
@@ -49,7 +46,7 @@ def preprocess_text(text):
         raise ValueError("Não foi possível extrair o ano do texto.")
     
     # Identificar blocos de transações por data
-    transactions = []
+    raw_transactions = []
     current_transaction = []
     date_pattern = r"^\d{2}/\d{2}$"
     saldo_keywords = ["SALDO DO DIA", "SALDO ANTERIOR", "SALDO BLOQUEADO"]
@@ -57,32 +54,24 @@ def preprocess_text(text):
     for line in lines:
         if re.match(date_pattern, line):
             if current_transaction:
-                transactions.append({"raw": "\n".join(current_transaction)})
+                raw_transactions.append({"raw": "\n".join(current_transaction)})
             current_transaction = [line]
         elif any(keyword in line for keyword in saldo_keywords):
             if current_transaction:
                 if len(current_transaction) > 1:
-                    transactions.append({"raw": "\n".join(current_transaction)})
+                    raw_transactions.append({"raw": "\n".join(current_transaction)})
             current_transaction = [line]
         elif current_transaction:
             current_transaction.append(line)
     
     if current_transaction:
-        transactions.append({"raw": "\n".join(current_transaction)})
+        raw_transactions.append({"raw": "\n".join(current_transaction)})
     
-    return transactions, year
-
-def extract_transactions(transactions, year=None):
-    """
-    Extrai Data, Descrição, Valor e Tipo (C/D) de cada transação no novo formato.
-    Descarta blocos que contêm apenas SALDO DO DIA, SALDO ANTERIOR ou SALDO BLOQUEADO.
-    Usa o ano fornecido para formatar as datas como DD/MM/YYYY.
-    Retorna uma lista de dicionários no formato final.
-    """
+    # Processar as transações brutas para extrair os dados formatados
     data = []
     value_pattern = r"R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2})([CD])"
     
-    for transaction_dict in transactions:
+    for transaction_dict in raw_transactions:
         transaction = transaction_dict["raw"]
         lines = transaction.split("\n")
         
@@ -121,18 +110,8 @@ def extract_transactions(transactions, year=None):
     
     return data
 
+def extract_transactions(transactions):
+    return transactions
+
 def process(text):
-    """
-    Processa o texto extraído do Sicoob e retorna o DataFrame, XML e TXT.
-    Garante que o DataFrame tenha as datas no formato DD/MM/YYYY.
-    """
-    transactions, year = preprocess_text(text)
-    data = extract_transactions(transactions, year)
-    if not data:
-        return None, None, None
-    
-    # Gerar XML e TXT (usando as funções fornecidas)
-    xml_data = create_xml(data)
-    txt_data = create_txt(data)
-    
-    return xml_data, txt_data
+    return process_transactions(text, preprocess_text, extract_transactions)

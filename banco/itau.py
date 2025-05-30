@@ -1,27 +1,28 @@
 import re
 from auxiliares.utils import process_transactions
 
-def convert_date_format(date_str):
-    """
-    Converte datas no formato DD/mes para DD/MM.
-    Ex.: 01/abr -> 01/04, 31/mar -> 31/03
-    """
-    month_map = {
-        "jan": "01", "fev": "02", "mar": "03", "abr": "04", "mai": "05", "jun": "06",
-        "jul": "07", "ago": "08", "set": "09", "out": "10", "nov": "11", "dez": "12"
-    }
-    match = re.match(r"(\d{2})/(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)", date_str, re.IGNORECASE)
-    if match:
-        day = match.group(1)
-        month = month_map[match.group(2).lower()]
-        return f"{day}/{month}"
-    return date_str
-
 def preprocess_text(text):
     """
     Pré-processa o texto do Itaú para dividir transações, ignorando cabeçalho e rodapé.
     Extrai o ano do período informado e adiciona às datas das transações no formato DD/MM/YYYY.
+    Contém a função auxiliar convert_date_format internamente.
     """
+    def convert_date_format(date_str):
+        """
+        Converte datas no formato DD/mes para DD/MM.
+        Ex.: 01/abr -> 01/04, 31/mar -> 31/03
+        """
+        month_map = {
+            "jan": "01", "fev": "02", "mar": "03", "abr": "04", "mai": "05", "jun": "06",
+            "jul": "07", "ago": "08", "set": "09", "out": "10", "nov": "11", "dez": "12"
+        }
+        match = re.match(r"(\d{2})/(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)", date_str, re.IGNORECASE)
+        if match:
+            day = match.group(1)
+            month = month_map[match.group(2).lower()]
+            return f"{day}/{month}"
+        return date_str
+
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     
     # Extrair o ano do período (ex.: "lançamentos período: 01/04/2025 até 30/04/2025")
