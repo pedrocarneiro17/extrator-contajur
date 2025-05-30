@@ -13,6 +13,7 @@ from .pagbank import process as process_pagbank
 from .stone import process as process_stone
 from .bancobrasil1 import process as process_bancobrasil1
 from .bancobrasil2 import process as process_bancobrasil2
+from .ifood import process as process_ifood
 
 BANK_PROCESSORS = {
     "Sicoob1": process_sicoob,
@@ -29,7 +30,8 @@ BANK_PROCESSORS = {
     "PagBank": process_pagbank,
     "Stone": process_stone,
     "Banco do Brasil1": process_bancobrasil1,
-    "Banco do Brasil2": process_bancobrasil2
+    "Banco do Brasil2": process_bancobrasil2,
+    "iFood": process_ifood
 }
 
 def get_processor(bank):
