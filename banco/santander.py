@@ -1,5 +1,4 @@
 import re
-
 from auxiliares.utils import process_transactions 
 
 def preprocess_text(text):

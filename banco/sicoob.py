@@ -1,6 +1,5 @@
 import re
-import pandas as pd
-from io import BytesIO
+
 from auxiliares.utils import create_xml, create_txt, process_transactions
 
 def preprocess_text(text):

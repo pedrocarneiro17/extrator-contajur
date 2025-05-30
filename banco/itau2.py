@@ -1,5 +1,6 @@
 import re
-from auxiliares.utils import process_transactions  
+from auxiliares.utils import process_transactions 
+ 
 def preprocess_text(text):
     """
     Pré-processa o texto do extrato da LOFT DA SERRA LTDA para extrair transações, ignorando cabeçalho e rodapé.
