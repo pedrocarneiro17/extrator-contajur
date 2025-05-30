@@ -10,38 +10,6 @@ def preprocess_text(text):
     Retorna uma lista de dicionários com Data, Descrição, Valor e Tipo.
     Ignora cabeçalhos, rodapés, saldos e linhas mal formatadas.
     """
-    def processar_transacao(transacao_unificada):
-        """Processa uma transação unificada e retorna um dicionário ou None."""
-        partes = transacao_unificada.split()
-        if not partes or not date_pattern.match(partes[0]):
-            return None
-        
-        data = partes[0]
-        valor_match = value_pattern.search(transacao_unificada)
-        if not valor_match:
-            return None
-        
-        valor_str = valor_match.group(0)
-        tipo = 'D' if 'R$ -' in valor_str else 'C'
-        valor = valor_str.replace('R$', '').replace('-', '').strip()
-        if valor.endswith(",00"):
-            valor = valor[:-3]
-        elif valor.endswith("0"):
-            valor = valor[:-1]
-        
-        transacao_sem_data = ' '.join(partes[1:])
-        descricao = transacao_sem_data.replace(valor_str, '').strip()
-        
-        if not (descricao and valor):
-            return None
-        
-        return {
-            "Data": data,
-            "Descrição": descricao,
-            "Valor": valor,
-            "Tipo": tipo
-        }
-
     # Dividir o texto em linhas
     linhas = text.splitlines()
     transactions = []
@@ -50,7 +18,7 @@ def preprocess_text(text):
     date_pattern = re.compile(r'^\d{2}/\d{2}/\d{4}')  # DD/MM/YYYY
     value_pattern = re.compile(r'R\$\s*-?\d{1,3}(?:\.\d{3})*,\d{2}')  # R$ ou R$ - seguido de valor
     
-    for linha in linhas:
+    for idx, linha in enumerate(linhas, 1):
         linha = linha.strip()
         if not linha:
             continue
@@ -81,24 +49,39 @@ def preprocess_text(text):
         ]) or re.search(r'Conta\s+\d+-\d', linha):
             continue
         
-        # Verificar se a linha começa com uma data
-        if date_pattern.match(linha):
-            # Processar a transação acumulada, se existir
-            if transacao_atual:
-                transacao_unificada = ' '.join(transacao_atual)
-                transacao = processar_transacao(transacao_unificada)
-                if transacao:
-                    transactions.append(transacao)
-            transacao_atual = [linha]
-        else:
-            transacao_atual.append(linha)
-    
-    # Processar a última transação
-    if transacao_atual:
+        # Adicionar linha à transação atual
+        transacao_atual.append(linha)
+        
+        # Verificar se a transação atual forma uma transação válida
         transacao_unificada = ' '.join(transacao_atual)
-        transacao = processar_transacao(transacao_unificada)
-        if transacao:
-            transactions.append(transacao)
+        partes = transacao_unificada.split()
+        
+        if partes and date_pattern.match(partes[0]) and value_pattern.search(transacao_unificada):
+            data = partes[0]
+            valor_match = value_pattern.search(transacao_unificada)
+            valor_str = valor_match.group(0)
+            tipo = 'D' if 'R$ -' in valor_str else 'C'
+            valor = valor_str.replace('R$', '').replace('-', '').strip()
+            if valor.endswith(",00"):
+                valor = valor[:-3]
+            elif valor.endswith("0"):
+                valor = valor[:-1]
+            
+            transacao_sem_data = ' '.join(partes[1:])
+            descricao = transacao_sem_data.replace(valor_str, '').strip()
+            
+            if descricao and valor:
+                transactions.append({
+                    "Data": data,
+                    "Descrição": descricao,
+                    "Valor": valor,
+                    "Tipo": tipo
+                })
+                transacao_atual = []  # Resetar após processar
+        
+        # Se for uma nova data, resetar transacao_atual após processar
+        if idx < len(linhas) and date_pattern.match(linhas[idx].strip()):
+            transacao_atual = []
     
     return transactions
 
