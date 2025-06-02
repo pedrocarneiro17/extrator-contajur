@@ -11,8 +11,7 @@ def preprocess_text(text):
     # Dividir o texto em transações com base no padrão de data (DD/MM/YYYY)
     date_pattern = re.compile(r'\d{2}/\d{2}/\d{4}')
     transactions = []
-    current_transaction = []
-    
+
     # Dividir o texto em partes com base nas datas
     parts = date_pattern.split(text)
     dates = date_pattern.findall(text)

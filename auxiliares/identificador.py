@@ -74,6 +74,9 @@ def identificar_banco(text):
     if 'Cora SCFI' in text:
         return "Cora"
     
+    if 'Banco Safra S/A' in text:
+        return "Safra"
+    
     if any(palavra.lower() == 'extrato' for palavra in text.split()):
         return "Caixa"
 
