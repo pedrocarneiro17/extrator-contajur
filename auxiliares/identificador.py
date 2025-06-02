@@ -22,8 +22,11 @@ def identificar_banco(text):
         return "Nubank"
 
     # Santander
+    if '3472' in text or '3222' in text and 'EXTRATOCONSOLIDADOINTELIGENTE' in text:
+        return "Santander2"
+        
     if '3472' in text or '3222' in text:
-        return "Santander"
+        return "Santander1"
 
     # Bradesco
     if '00632' in text:

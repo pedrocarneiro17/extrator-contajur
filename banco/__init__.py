@@ -7,7 +7,8 @@ from .caixa import process as process_caixa
 from .inter import process as process_inter
 from .nubank import process as process_nubank
 from .bradesco import process as process_bradesco
-from .santander import process as process_santander
+from .santander1 import process as process_santander1
+from .santander2 import process as process_santander2
 from .sicredi import process as process_sicredi
 from .pagbank import process as process_pagbank
 from .stone import process as process_stone
@@ -28,7 +29,8 @@ BANK_PROCESSORS = {
     "Banco Inter": process_inter,
     "Nubank": process_nubank,
     "Bradesco": process_bradesco,
-    "Santander": process_santander,
+    "Santander1": process_santander1,
+    "Santander2": process_santander2,
     "Sicredi": process_sicredi,
     "PagBank": process_pagbank,
     "Stone": process_stone,
