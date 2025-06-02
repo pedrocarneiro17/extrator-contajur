@@ -3,11 +3,7 @@ import re
 from auxiliares.utils import process_transactions
 
 def preprocess_text(text):
-    """
-    Pré-processa o texto do extrato do Banco Safra para dividir transações, ignorando cabeçalho e rodapé.
-    Combina todas as linhas entre data e valor em uma única coluna Descrição.
-    Mantém valores no formato brasileiro (ex.: 1.012,29).
-    """
+  
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     
     # Extrair o ano do período
@@ -42,85 +38,59 @@ def preprocess_text(text):
     transactions = []
     transacao_atual = []
     
-    for line in transaction_lines:
-        # Verifica se a linha é uma data (início de nova transação)
-        date_match = re.match(date_pattern, line)
-        if date_match:
-            if transacao_atual:
-                # Processa a transação acumulada se tiver um valor monetário
-                value_match = re.search(value_pattern, transacao_atual[-1])
-                if value_match:
-                    data = f"{transacao_atual[0]}/{ano}" if ano else transacao_atual[0]
-                    valor = value_match.group(0)
-                    tipo = 'D' if '-' in valor else 'C'
-                    # Remove o sinal de menos e formata o valor
-                    valor_formatado = valor.replace('-', '')
-                    if valor_formatado.endswith(',00'):
-                        valor_formatado = valor_formatado[:-3]
-                    else:
-                        try:
-                            num = float(valor_formatado.replace(',', '.'))
-                            partes = f"{num:.2f}".split('.')
-                            inteiro = partes[0]
-                            decimal = partes[1]
-                            inteiro_formatado = ""
-                            for j, digito in enumerate(reversed(inteiro)):
-                                if j > 0 and j % 3 == 0:
-                                    inteiro_formatado = '.' + inteiro_formatado
-                                inteiro_formatado = digito + inteiro_formatado
-                            valor_formatado = f"{inteiro_formatado},{decimal}"
-                        except ValueError:
-                            pass  # Mantém valor_formatado como está
-                    # Descrição é tudo entre data e valor
-                    descricao = ' '.join(transacao_atual[1:-1]) if len(transacao_atual) > 2 else (transacao_atual[1] if len(transacao_atual) == 2 else '')
-                    transactions.append({
-                        "Data": data,
-                        "Descrição": descricao,
-                        "Valor": valor_formatado,
-                        "Tipo": tipo
-                    })
-            transacao_atual = [line]  # Inicia nova transação
-            continue
-        
-        # Verifica se a linha contém um valor monetário
-        value_match = re.search(value_pattern, line)
-        if value_match and transacao_atual:
-            transacao_atual.append(line)
-            # Processa a transação
-            data = f"{transacao_atual[0]}/{ano}" if ano else transacao_atual[0]
-            valor = value_match.group(0)
-            tipo = 'D' if '-' in valor else 'C'
-            # Remove o sinal de menos e formata o valor
-            valor_formatado = valor.replace('-', '')
-            if valor_formatado.endswith(',00'):
-                valor_formatado = valor_formatado[:-3]
-            else:
-                try:
-                    num = float(valor_formatado.replace(',', '.'))
-                    partes = f"{num:.2f}".split('.')
-                    inteiro = partes[0]
-                    decimal = partes[1]
-                    inteiro_formatado = ""
-                    for j, digito in enumerate(reversed(inteiro)):
-                        if j > 0 and j % 3 == 0:
-                            inteiro_formatado = '.' + inteiro_formatado
-                        inteiro_formatado = digito + inteiro_formatado
-                    valor_formatado = f"{inteiro_formatado},{decimal}"
-                except ValueError:
-                    pass  # Mantém valor_formatado como está
-            # Descrição é tudo entre data e valor
-            descricao = ' '.join(transacao_atual[1:-1]) if len(transacao_atual) > 2 else (transacao_atual[1] if len(transacao_atual) == 2 else '')
+    def process_transaction(transacao):
+        """Processa uma transação e adiciona ao resultado, se válida."""
+        if not transacao or len(transacao) < 2:
+            return
+        value_match = re.search(value_pattern, transacao[-1])
+        if not value_match:
+            return
+        data = f"{transacao[0]}/{ano}" if ano else transacao[0]
+        valor = value_match.group(0)
+        tipo = 'D' if '-' in valor else 'C'
+        # Remove o sinal de menos e formata o valor
+        valor_formatado = valor.replace('-', '')
+        if valor_formatado.endswith(',00'):
+            valor_formatado = valor_formatado[:-3]
+        else:
+            try:
+                num = float(valor_formatado.replace(',', '.'))
+                partes = f"{num:.2f}".split('.')
+                inteiro = partes[0]
+                decimal = partes[1]
+                inteiro_formatado = ""
+                for j, digito in enumerate(reversed(inteiro)):
+                    if j > 0 and j % 3 == 0:
+                        inteiro_formatado = '.' + inteiro_formatado
+                    inteiro_formatado = digito + inteiro_formatado
+                valor_formatado = f"{inteiro_formatado},{decimal}"
+            except ValueError:
+                pass  # Mantém valor_formatado como está
+        # Descrição é tudo entre data e valor
+        descricao = ' '.join(transacao[1:-1]) if len(transacao) > 2 else (transacao[1] if len(transacao) == 2 else '')
+        # Filtra transações com descrição 'conta corrente'
+        if descricao.lower() != 'conta corrente':
             transactions.append({
                 "Data": data,
                 "Descrição": descricao,
                 "Valor": valor_formatado,
                 "Tipo": tipo
             })
-            transacao_atual = []
+    
+    for line in transaction_lines:
+        # Verifica se a linha é uma data (início de nova transação)
+        date_match = re.match(date_pattern, line)
+        if date_match:
+            # Processa a transação anterior, se houver
+            process_transaction(transacao_atual)
+            transacao_atual = [line]  # Inicia nova transação
             continue
         
         # Adiciona a linha à transação atual
         transacao_atual.append(line)
+    
+    # Processa a última transação
+    process_transaction(transacao_atual)
     
     return transactions
 

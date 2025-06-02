@@ -12,6 +12,10 @@ def identificar_banco(text):
     if not linhas:
         return "Erro: Texto vazio ou ilegível"
     palavras = text.split()
+    
+    # Caixa
+    if 'Sujeito a alteração até o final do expediente bancário' in text:
+        return "Caixa"
 
     # Stone
     if len(linhas) >= 3 and 'Instituição Stone Instituição' in linhas[2].strip():
@@ -37,7 +41,7 @@ def identificar_banco(text):
         return "Banco do Brasil2" if text.strip().split()[0].lower() == 'extrato' else "Banco do Brasil1"
     
     # Sicredi
-    if '0179' in text:
+    if '0179' in text and 'Sicredi Fone' in text:
         return "Sicredi"
     
     # PagBank
@@ -67,20 +71,20 @@ def identificar_banco(text):
                     return "Itaú2"
         return "Itaú"
     
-    # Outros bancos específicos
+    # iFood
     if 'Extrato da Conta Digital iFood' in text:
         return "iFood"
     
+    # Asaas
     if 'ASAAS Gestão Financeira Instituição de Pagamento S.A.' in text:
         return "Asaas"
     
+    # Cora
     if 'Cora SCFI' in text:
         return "Cora"
     
+    # Safra
     if 'Banco Safra S/A' in text:
         return "Safra"
-    
-    if any(palavra.lower() == 'extrato' for palavra in text.split()):
-        return "Caixa"
 
     return "Banco não identificado"
