@@ -1,4 +1,3 @@
-import fitz  # PyMuPDF
 import re
 from auxiliares.utils import process_transactions
 

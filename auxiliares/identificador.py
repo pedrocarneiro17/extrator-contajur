@@ -86,5 +86,9 @@ def identificar_banco(text):
     # Safra
     if 'Banco Safra S/A' in text:
         return "Safra"
+    
+    # InfinitePay
+    if 'ajuda@infinitepay.io' in text:
+        return "InfinitePay"
 
     return "Banco não identificado"
