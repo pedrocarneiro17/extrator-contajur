@@ -19,6 +19,8 @@ from .asaas import process as process_asaas
 from .cora import process as process_cora
 from .safra import process as process_safra
 from .infinitepay import process as process_infinitepay
+from .efi1 import process as process_efi1
+from .efi2 import process as process_efi2
 
 BANK_PROCESSORS = {
     "Sicoob1": process_sicoob,
@@ -41,7 +43,9 @@ BANK_PROCESSORS = {
     "Asaas": process_asaas,
     "Cora": process_cora,
     "Safra": process_safra,
-    "InfinitePay": process_infinitepay
+    "InfinitePay": process_infinitepay,
+    "Efi1": process_efi1,
+    "Efi2": process_efi2
 }
 
 def get_processor(bank):
