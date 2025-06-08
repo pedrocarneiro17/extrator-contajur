@@ -48,13 +48,15 @@ def preprocess_text(text):
         valor_match = valor_pattern.match(linha)
         if valor_match:
             valor = valor_match.group(1)
-            tipo = 'D' if '-' in valor else 'C'
             valor_formatado = valor.replace('-', '').replace('+', '')
             if valor_formatado.endswith(",00"):
                 valor_formatado = valor_formatado[:-3]
                 
+            # Verifica se transacao_atual e data_atual existem antes de processar
             if transacao_atual and data_atual:
                 descricao = ' '.join(transacao_atual).strip()
+                # Define o tipo com base na presença de "recebimento" na descrição
+                tipo = 'C' if 'recebimento' in descricao.lower() else 'D'
                 transacoes.append({
                     "Data": data_atual,
                     "Descrição": descricao,
