@@ -54,9 +54,13 @@ def preprocess_text(text):
                 
             # Verifica se transacao_atual e data_atual existem antes de processar
             if transacao_atual and data_atual:
-                descricao = ' '.join(transacao_atual).strip()
-                # Define o tipo com base na presença de "recebimento" na descrição
-                tipo = 'C' if 'recebimento' in descricao.lower() or 'Venda na' in descricao.lower() or 'Pix recebido' in descricao.lower() else 'D'
+                # Normaliza a descrição removendo caracteres indesejados
+                descricao = ' '.join(transacao_atual).strip().replace('\n', ' ').replace('\r', ' ')
+                # Lista de palavras-chave para tipo 'C' (crédito)
+                credit_keywords = ['recebimento', 'venda na', 'pix recebido']
+                # Verifica se alguma palavra-chave está na descrição
+                is_credit = any(keyword in descricao.lower() for keyword in credit_keywords)
+                tipo = 'C' if is_credit else 'D'
                 transacoes.append({
                     "Data": data_atual,
                     "Descrição": descricao,

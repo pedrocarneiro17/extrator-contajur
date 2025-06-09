@@ -13,6 +13,20 @@ def identificar_banco(text):
         return "Erro: Texto vazio ou ilegível"
     palavras = text.split()
     
+    # Efi
+    if 'Efí S.A.' in text and 'Filtros aplicados' in text:
+        return "Efi1"
+
+    if 'Efí S.A.' in text and 'Filtros do' in text:
+        return "Efi2"
+    
+    # Santander
+    if 'Agência: 3472' in text or 'Agência: 3222' in text:
+        return "Santander1"
+
+    if 'EXTRATOCONSOLIDADOINTELIGENTE' in text:
+        return "Santander2"
+    
     # Caixa
     if 'Sujeito a alteração até o final do expediente bancário' in text:
         return "Caixa"
@@ -24,20 +38,7 @@ def identificar_banco(text):
     # Nubank
     if 'ouvidoria@nubank.com.br' in text:
         return "Nubank"
-    
-    # Efi
-    if 'Efí S.A.' in text and 'Filtros aplicados' in text:
-        return "Efi1"
 
-    if 'Efí S.A.' in text and 'Filtros do' in text:
-        return "Efi2"
-
-    # Santander
-    if 'EXTRATOCONSOLIDADOINTELIGENTE' in text and '3472' in text or '3222' in text:
-        return "Santander2"
-        
-    if 'Agência 3472' in text or 'Agência 3222' in text:
-        return "Santander1"
 
     # Bradesco
     if '00632' in text:
@@ -52,6 +53,7 @@ def identificar_banco(text):
         return "Sicredi"
     
     # PagBank
+
     if 'PagSeguro Internet S/A' in text:
         return "PagBank"
     
