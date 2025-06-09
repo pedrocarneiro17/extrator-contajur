@@ -13,6 +13,10 @@ def identificar_banco(text):
         return "Erro: Texto vazio ou ilegível"
     palavras = text.split()
     
+    # Nubank
+    if 'ouvidoria@nubank.com.br' in text:
+        return "Nubank"
+    
     # Efi
     if 'Efí S.A.' in text and 'Filtros aplicados' in text:
         return "Efi1"
@@ -34,11 +38,6 @@ def identificar_banco(text):
     # Stone
     if len(linhas) >= 3 and 'Instituição Stone Instituição' in linhas[2].strip():
         return "Stone"
-    
-    # Nubank
-    if 'ouvidoria@nubank.com.br' in text:
-        return "Nubank"
-
 
     # Bradesco
     if '00632' in text:
