@@ -32,7 +32,7 @@ def identificar_banco(text):
         return "Santander2"
     
     # Caixa
-    if 'Sujeito a alteração até o final do expediente bancário' in text:
+    if 'Sujeito a alteração até o final do expediente bancário' in text or 'Os lançamentos de extrato não estão disponíveis' in text:
         return "Caixa"
 
     # Stone
@@ -57,13 +57,13 @@ def identificar_banco(text):
         return "PagBank"
     
     # Sicoob (variações)
-    if palavras and palavras[0].lower().startswith('sicoob'):
+    if palavras and palavras[0].lower().startswith('sicoob') or ' SICOOB CREDIMEPI' in text:
         return "Sicoob1"
     if (linhas and "Sicoob | Internet Banking" in linhas[0].strip() and 
         "SISTEMA DE COOPERATIVAS DE CRÉDITO DO BRASIL" in text):
         return "Sicoob2"
     
-    # Banco Inter
+    # Banco Inter 
     if len(linhas) >= 3 and 'Banco Inter' in linhas[2]:
         return "Banco Inter"
     
