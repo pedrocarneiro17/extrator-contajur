@@ -85,7 +85,7 @@ def run_app():
             if error:
                 st.error(f"{file_name}: {error}")
             else:
-                st.success(f"{file_name}: ✅ Dados extraídos com sucesso!")
+                #st.success(f"{file_name}: ✅ Dados extraídos com sucesso!")
                 has_success = True
 
         # Se houver pelo menos um CSV gerado, oferece o download do ZIP
