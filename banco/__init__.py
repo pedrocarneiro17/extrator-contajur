@@ -1,5 +1,6 @@
 from .sicoob import process as process_sicoob
 from .sicoob2 import process as process_sicoob2
+from .sicoob3 import process as process_sicoob3
 from .itau import process as process_itau
 from .itau2 import process as process_itau2
 from .itau3 import process as process_itau3
@@ -25,6 +26,7 @@ from .efi2 import process as process_efi2
 BANK_PROCESSORS = {
     "Sicoob1": process_sicoob,
     "Sicoob2": process_sicoob2,
+    "Sicoob3": process_sicoob3,
     "Itaú": process_itau,
     "Itaú2": process_itau2,
     "Itaú3": process_itau3,
