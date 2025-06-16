@@ -103,4 +103,8 @@ def identificar_banco(text):
     if 'ajuda@infinitepay.io' in text:
         return "InfinitePay"
 
+    # Mercado Pago
+    if 'www.mercadopago.com.br' in text or 'Mercado Pago' in text:
+        return "Mercado Pago"
+
     return "Banco não identificado"

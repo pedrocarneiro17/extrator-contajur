@@ -33,7 +33,7 @@ def display_menu():
                 else:
                     #st.success(f"{uploaded_file.name}: Banco identificado: **{identified_bank}**")
                     # Se for um dos bancos que precisam de read_pdf2
-                    if identified_bank in ['Bradesco', 'Sicoob1', 'Sicoob2', 'Sicoob3', 'Stone', 'Banco do Brasil1', 'Safra', 'Santander2', 'Efi1', 'Efi2']:
+                    if identified_bank in ['Bradesco', 'Sicoob1', 'Sicoob2', 'Sicoob3', 'Stone', 'Banco do Brasil1', 'Safra', 'Santander2', 'Efi1', 'Efi2', 'Mercado Pago']:
                         uploaded_file.seek(0)  # Resetar o ponteiro novamente
                         text = read_pdf2(uploaded_file)  # read_pdf2 retorna apenas o texto
                     banks.append(identified_bank)

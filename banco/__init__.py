@@ -22,6 +22,7 @@ from .safra import process as process_safra
 from .infinitepay import process as process_infinitepay
 from .efi1 import process as process_efi1
 from .efi2 import process as process_efi2
+from .mercadopago import process as process_mercadopago
 
 BANK_PROCESSORS = {
     "Sicoob1": process_sicoob,
@@ -47,10 +48,12 @@ BANK_PROCESSORS = {
     "Safra": process_safra,
     "InfinitePay": process_infinitepay,
     "Efi1": process_efi1,
-    "Efi2": process_efi2
+    "Efi2": process_efi2,
+    "Mercado Pago": process_mercadopago
 }
 
 def get_processor(bank):
+    
     processor = BANK_PROCESSORS.get(bank)
     if not processor:
         raise ValueError(f"Banco não suportado: {bank}")
